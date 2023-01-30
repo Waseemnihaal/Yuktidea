@@ -50,11 +50,13 @@ class _loginState extends State<login> {
               childCurrent: widget,
               duration: Duration(milliseconds: 600),
               alignment: Alignment.topLeft));
-          var token = json['data']['access_token'];
-          print(token);
+          var token = json['data'][0]['access_token'];
+          print('$token token from login');
           final SharedPreferences? prefs = await _prefs;
 
-          await prefs?.setString('access_token', token);
+          prefs!.setString('token', token!);
+          prefs.setInt(
+              'tokenGeneratedTime', DateTime.now().millisecondsSinceEpoch);
         } else {
           throw jsonDecode(response.body)["message"] ?? 'Unknown Error Occured';
         }

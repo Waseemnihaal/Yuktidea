@@ -4,7 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart' as prefs;
+import 'package:yuktidea/util/token.dart';
+
+import 'home.dart';
 
 class OTPScreen extends StatefulWidget {
   @override
@@ -13,8 +18,9 @@ class OTPScreen extends StatefulWidget {
 
 class _OTPScreenState extends State<OTPScreen> {
   final _formKey = GlobalKey<FormState>();
-  late String _otp1, _otp2, _otp3, _otp4;
+
   int _seconds = 60;
+  var flag = 0;
 
   void startTimer() {
     Timer.periodic(Duration(seconds: 1), (timer) {
@@ -28,40 +34,49 @@ class _OTPScreenState extends State<OTPScreen> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    startTimer();
-  }
+  TextEditingController otpcontroller1 = TextEditingController();
+  TextEditingController otpcontroller2 = TextEditingController();
+  TextEditingController otpcontroller3 = TextEditingController();
+  TextEditingController otpcontroller4 = TextEditingController();
 
-  TextEditingController otpcontroller = TextEditingController();
-
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-
-  void sign() async {
+  Future otp() async {
     try {
-      var headers = {"Content-Type": "application/json"};
-      var url = Uri.parse('https://cinecompass.yuktidea.com/api/v1/register');
-      Map body = {};
+      print('Bearer ${await getToken()}');
+      var headers = {
+        "Content-Type": "application/json",
+        "Authorization": 'Bearer ${await getToken()}'
+      };
+      var url = Uri.parse('https://cinecompass.yuktidea.com/api/v1/otp/verify');
+      Map body = {
+        "otp": otpcontroller1.text +
+            otpcontroller2.text +
+            otpcontroller3.text +
+            otpcontroller4.text
+      };
+      print('$body body of otp');
       http.Response response =
           await http.post(url, body: jsonEncode(body), headers: headers);
-      final json = jsonDecode(response.body);
+      print('${response.body} response.body from otp');
+      print('${response.statusCode} response.statuscode');
+
       if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        flag = 0;
         print("sucess");
         if (json['status'] == true) {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => OTPScreen()));
-          var token = json['data']['access_token'];
-          print(token);
-          final SharedPreferences prefs = await _prefs;
-
-          await prefs.setString('access_token', token);
+          Navigator.of(context).push(PageTransition(
+              child: home(),
+              type: PageTransitionType.fade,
+              childCurrent: widget,
+              duration: Duration(milliseconds: 600),
+              alignment: Alignment.topLeft));
         } else {
-          throw jsonDecode(response.body)["error"] ?? 'Unknown Error Occured';
+          throw jsonDecode(response.body)["message"] ?? 'Unknown Error Occured';
         }
       } else {
+        flag = 1;
         print("faild");
-        throw jsonDecode(response.body)["error"] ?? 'Unknown Error Occured';
+        throw jsonDecode(response.body)["message"] ?? 'Unknown Error Occured';
       }
     } catch (e) {
       Get.back();
@@ -71,11 +86,19 @@ class _OTPScreenState extends State<OTPScreen> {
             return SimpleDialog(
               title: Text('Error'),
               contentPadding: EdgeInsets.all(20),
-              children: [Text('$e')],
+              children: [Text(e.toString())],
             );
           });
     }
   }
+
+  @override
+  void initState() {
+    super.initState();
+    startTimer();
+  }
+
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   @override
   Widget build(BuildContext context) {
@@ -125,9 +148,8 @@ class _OTPScreenState extends State<OTPScreen> {
                           FilteringTextInputFormatter.digitsOnly
                         ],
                         style: TextStyle(color: Colors.white),
-                        controller: otpcontroller,
+                        controller: otpcontroller1,
                         decoration: InputDecoration(
-                          labelText: '0',
                           labelStyle: TextStyle(
                               color: Color.fromARGB(255, 134, 124, 124)),
                           fillColor: Colors.black54,
@@ -139,7 +161,7 @@ class _OTPScreenState extends State<OTPScreen> {
                           }
                           return null;
                         },
-                        onSaved: (value) => _otp1 = value!,
+                        onSaved: (value) => value!,
                       ),
                     ),
                     SizedBox(
@@ -158,9 +180,8 @@ class _OTPScreenState extends State<OTPScreen> {
                           FilteringTextInputFormatter.digitsOnly
                         ],
                         style: TextStyle(color: Colors.white),
-                        controller: otpcontroller,
+                        controller: otpcontroller2,
                         decoration: InputDecoration(
-                          labelText: '0',
                           labelStyle: TextStyle(
                               color: Color.fromARGB(255, 134, 124, 124)),
                           fillColor: Colors.black54,
@@ -172,7 +193,7 @@ class _OTPScreenState extends State<OTPScreen> {
                           }
                           return null;
                         },
-                        onSaved: (value) => _otp2 = value!,
+                        onSaved: (value) => value!,
                       ),
                     ),
                     SizedBox(
@@ -191,9 +212,8 @@ class _OTPScreenState extends State<OTPScreen> {
                           FilteringTextInputFormatter.digitsOnly
                         ],
                         style: TextStyle(color: Colors.white),
-                        controller: otpcontroller,
+                        controller: otpcontroller3,
                         decoration: InputDecoration(
-                          labelText: '0',
                           labelStyle: TextStyle(
                               color: Color.fromARGB(255, 134, 124, 124)),
                           fillColor: Colors.black54,
@@ -205,7 +225,7 @@ class _OTPScreenState extends State<OTPScreen> {
                           }
                           return null;
                         },
-                        onSaved: (value) => _otp3 = value!,
+                        onSaved: (value) => value!,
                       ),
                     ),
                     SizedBox(
@@ -224,9 +244,8 @@ class _OTPScreenState extends State<OTPScreen> {
                           FilteringTextInputFormatter.digitsOnly
                         ],
                         style: TextStyle(color: Colors.white),
-                        controller: otpcontroller,
+                        controller: otpcontroller4,
                         decoration: InputDecoration(
-                          labelText: '0',
                           labelStyle: TextStyle(
                               color: Color.fromARGB(255, 134, 124, 124)),
                           fillColor: Colors.black54,
@@ -238,7 +257,7 @@ class _OTPScreenState extends State<OTPScreen> {
                           }
                           return null;
                         },
-                        onSaved: (value) => _otp4 = value!,
+                        onSaved: (value) => value!,
                       ),
                     ),
                   ],
@@ -279,10 +298,13 @@ class _OTPScreenState extends State<OTPScreen> {
                         primary: Colors.transparent,
                         elevation: 0,
                       ),
-                      onPressed: (() {
-                        if (_formKey.currentState!.validate()) {
+                      onPressed: (() async {
+                        final isValid = _formKey.currentState!.validate();
+
+                        if (isValid) {
                           _formKey.currentState!.save();
-                          // Verify the OTP here
+
+                          await otp();
                         }
                       }),
                       child: Text(

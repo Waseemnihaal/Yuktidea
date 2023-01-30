@@ -51,21 +51,24 @@ class _signupState extends State<signup> {
       if (response.statusCode == 200) {
         print("sucess");
         final json = jsonDecode(response.body);
+        print(json);
         if (json['status'] == true) {
           Navigator.push(
               context, MaterialPageRoute(builder: (context) => OTPScreen()));
-          var token = json['data']['access_token'];
-          print(token);
-          print('hi');
+          var token = json['data'][0]['access_token'];
+          print('$token token from signup');
 
           final SharedPreferences prefs = await _prefs;
 
-          await prefs.setString('access_token', token);
+          prefs.setString('token', token!);
+          prefs.setInt(
+              'tokenGeneratedTime', DateTime.now().millisecondsSinceEpoch);
         } else {
           throw jsonDecode(response.body)["error"] ?? 'Unknown Error Occured';
         }
       } else {
         print("faild");
+        print(jsonDecode(response.body)["error"]);
         throw jsonDecode(response.body)["error"] ?? 'Unknown Error Occured';
       }
     } catch (e) {}
@@ -158,7 +161,7 @@ class _signupState extends State<signup> {
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10))),
                       validator: (value) {
-                        if (value!.length > 9) {
+                        if (value!.length < 9) {
                           return 'Phone Number must be 10 digits';
                         }
                         return null;
